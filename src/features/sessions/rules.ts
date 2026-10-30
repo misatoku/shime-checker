@@ -1,12 +1,21 @@
 import type { CheckItem, Session } from '../../shared/types';
-import { makeId, nowIso } from '../../shared/lib/utils';
+import { isSameLocalDay, makeId, nowIso } from '../../shared/lib/utils';
 
 export const createSession = (items: CheckItem[], at = nowIso()): Session => {
   const snapshot = items.filter(i => i.enabled).sort((a, b) => a.order - b.order).map(i => ({ ...i }));
   if (!snapshot.length) throw new Error('有効なチェック項目がありません');
   if (!snapshot.some(i => i.isCritical)) throw new Error('重要項目を1件以上設定してください');
-  return { id: makeId(), startedAt: at, completedAt: null, status: 'in_progress', itemsSnapshot: snapshot,
+  return { id: makeId(), startedAt: at, completedAt: null, abandonedAt: null, status: 'in_progress', itemsSnapshot: snapshot,
     results: snapshot.map(item => ({ itemId: item.id, checkedAt: null, finalVerifiedAt: null })) };
+};
+export const closeStaleSessions = (sessions: Session[], at = nowIso()): Session[] => {
+  let changed = false;
+  const next = sessions.map(session => {
+    if (session.status !== 'in_progress' || isSameLocalDay(session.startedAt, at)) return session;
+    changed = true;
+    return { ...session, status: 'abandoned' as const, abandonedAt: at };
+  });
+  return changed ? next : sessions;
 };
 export const allChecked = (session: Session) => session.results.every(r => r.checkedAt !== null);
 export const criticalResults = (session: Session) => session.results.filter(r => session.itemsSnapshot.find(i => i.id === r.itemId)?.isCritical);
