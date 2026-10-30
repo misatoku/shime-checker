@@ -1,12 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useApp } from '../../app/AppContext';
-import { formatDateTime } from '../../shared/lib/utils';
+import { formatDateTime, isSameLocalDay, nowIso } from '../../shared/lib/utils';
 
 export function HomePage() {
   const { active, data, start } = useApp(); const navigate = useNavigate(); const [error, setError] = useState('');
   const last = data.sessions.find(s => s.status === 'completed');
-  const completedToday = last && new Date(last.completedAt!).toDateString() === new Date().toDateString() ? last : undefined;
+  const completedToday = last?.completedAt && isSameLocalDay(last.completedAt, nowIso()) ? last : undefined;
   const begin = () => { try { start(); navigate('/check'); } catch (e) { setError(e instanceof Error ? e.message : '開始できません'); } };
   return <section className="page home-page">
     <div className="hero"><h1>締め作業を<br />はじめましょう</h1><p>ひとつずつ確認すれば大丈夫です。</p></div>

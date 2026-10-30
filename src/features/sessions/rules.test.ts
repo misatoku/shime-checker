@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { allChecked, allFinalVerified, completeSession, createSession, toggleCheck, toggleFinal } from './rules';
+import { allChecked, allFinalVerified, closeStaleSessions, completeSession, createSession, toggleCheck, toggleFinal } from './rules';
 import type { CheckItem } from '../../shared/types';
 
 vi.stubGlobal('crypto', { randomUUID: () => 'session-id' });
@@ -8,6 +8,21 @@ const items: CheckItem[] = [
   { id:'b', title:'重要', category:'安全', isCritical:true, order:1, enabled:true }
 ];
 describe('セッション業務ルール', () => {
+  it('前日の未完了セッションを中断として保存する', () => {
+    const yesterday = new Date(2026, 9, 29, 23, 30).toISOString();
+    const today = new Date(2026, 9, 30, 1, 0).toISOString();
+    const session = toggleCheck(createSession(items, yesterday), 'a', yesterday);
+    const [closed] = closeStaleSessions([session], today);
+    expect(closed.status).toBe('abandoned');
+    expect(closed.abandonedAt).toBe(today);
+    expect(closed.results[0].checkedAt).toBe(yesterday);
+  });
+  it('同日の未完了セッションは再開できる状態を維持する', () => {
+    const morning = new Date(2026, 9, 30, 9, 0).toISOString();
+    const evening = new Date(2026, 9, 30, 22, 0).toISOString();
+    const sessions = [createSession(items, morning)];
+    expect(closeStaleSessions(sessions, evening)).toBe(sessions);
+  });
   it('開始時の定義をスナップショットとしてコピーする', () => { const session=createSession(items,'2026-01-01T00:00:00Z'); items[0].title='変更'; expect(session.itemsSnapshot[0].title).toBe('通常'); });
   it('重要項目がなければ開始できない', () => expect(() => createSession(items.map(i=>({...i,isCritical:false})))).toThrow('重要項目'));
   it('全項目チェック前は最終確認できない', () => { const s=createSession(items); expect(toggleFinal(s,'b')).toEqual(s); expect(allChecked(s)).toBe(false); });
