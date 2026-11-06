@@ -150,10 +150,12 @@ export function SettingsPage() {
         <h1>チェック項目</h1>
         <p>店舗の正式な手順に合わせて編集してください。</p>
       </div>
-      <div className="notice sample">
-        <strong>現在の初期項目はサンプルです</strong>
-        <span>実運用前に責任者と内容・順番・重要項目を確認してください。</span>
-      </div>
+      {data.isUsingSampleItems && (
+        <div className="notice sample">
+          <strong>現在の初期項目はサンプルです</strong>
+          <span>実運用前に責任者と内容・順番・重要項目を確認してください。</span>
+        </div>
+      )}
       {message && (
         <p className="message" role="status">
           {message}

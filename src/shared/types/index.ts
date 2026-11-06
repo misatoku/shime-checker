@@ -22,4 +22,9 @@ export type Session = {
   itemsSnapshot: CheckItem[];
   results: ItemResult[];
 };
-export type AppData = { version: 1; items: CheckItem[]; sessions: Session[] };
+export type AppData = {
+  version: 1;
+  items: CheckItem[];
+  sessions: Session[];
+  isUsingSampleItems?: boolean;
+};

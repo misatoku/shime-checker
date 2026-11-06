@@ -33,12 +33,31 @@ type AppContextValue = {
 };
 const Context = createContext<AppContextValue | null>(null);
 const repository = new LocalStorageRepository();
+const matchesSampleItems = (items: CheckItem[]) =>
+  items.length === sampleItems.length &&
+  items.every((item, index) => {
+    const sample = sampleItems[index];
+    return (
+      item.id === sample.id &&
+      item.title === sample.title &&
+      item.description === sample.description &&
+      item.category === sample.category &&
+      item.isCritical === sample.isCritical &&
+      item.enabled === sample.enabled &&
+      item.order === sample.order
+    );
+  });
 const initialData = (): AppData => {
   try {
     const loaded = validateData(repository.load());
     return { ...loaded, sessions: closeStaleSessions(loaded.sessions) };
   } catch {
-    return { version: 1, items: sampleItems, sessions: [] };
+    return {
+      version: 1,
+      items: sampleItems,
+      sessions: [],
+      isUsingSampleItems: true,
+    };
   }
 };
 export const validateData = (value: unknown): AppData => {
@@ -61,7 +80,13 @@ export const validateData = (value: unknown): AppData => {
     )
   )
     throw new Error("項目データが壊れています");
-  return data as AppData;
+  const validated = data as AppData; // dataをAppData型として扱う(型アサーション)
+  return {
+    ...validated, // 既存データの全プロパティを新しいオブジェクトへコピーして生成する
+    // isUsingSampleItemsを一つ下の行で判定している
+    isUsingSampleItems:
+      validated.isUsingSampleItems ?? matchesSampleItems(validated.items),
+  };
 };
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
@@ -133,6 +158,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setData((d) => ({
           ...d,
           items: items.map((i, order) => ({ ...i, order })),
+          isUsingSampleItems: false,
         })),
       importData: (imported) => {
         const validated = validateData(imported);
